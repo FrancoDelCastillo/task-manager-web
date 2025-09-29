@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "../supabaseClient";
 
-import { Link } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,11 +16,25 @@ interface SignUpError {
 }
 
 export default function SignUp(): React.JSX.Element {
+  const [firstName, setFirstName] = useState<string>("");
+  const [lastName, setLastName] = useState<string>("");
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [success, setSuccess] = useState<boolean>(false);
   const [loadingRegister, setLoadingRegister] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
+  const [checkingSession, setCheckingSession] = useState<boolean>(true);
+  
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) {
+        navigate("/dashboard", { replace: true });
+      }
+      setCheckingSession(false);
+    });
+  }, [navigate]);
 
   const handleSignUp = async (
     e: React.FormEvent<HTMLFormElement>
@@ -34,7 +48,11 @@ export default function SignUp(): React.JSX.Element {
         email,
         password,
         options: {
-          emailRedirectTo: "http://localhost:5173/dashboard",
+          data: {
+            first_name: firstName,
+            last_name: lastName,
+          },
+          emailRedirectTo: `${window.location.origin}/welcome`,
         },
       });
 
@@ -44,7 +62,6 @@ export default function SignUp(): React.JSX.Element {
         return;
       }
       setSuccess(true);
-      
     } catch (err) {
       const signUpError = err as SignUpError;
       console.error("Error inesperado: ", signUpError);
@@ -53,6 +70,14 @@ export default function SignUp(): React.JSX.Element {
       setLoadingRegister(false);
     }
   };
+
+  if (checkingSession) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p>Cargando...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-100 px-4">
@@ -106,20 +131,47 @@ export default function SignUp(): React.JSX.Element {
                 />
               </div>
 
+              <div className="space-y-2">
+                <Label htmlFor="firstName">Nombre</Label>
+                <Input
+                  id="firstName"
+                  type="text"
+                  placeholder=""
+                  value={firstName}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setFirstName(e.target.value)
+                  }
+                  disabled={success}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="lastName">Apellido</Label>
+                <Input
+                  id="lastName"
+                  type="text"
+                  placeholder=""
+                  value={lastName}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setLastName(e.target.value)
+                  }
+                  disabled={success}
+                />
+              </div>
+
               {error && <p className="text-red-500 text-sm">{error}</p>}
 
-              <Button
-                type="submit"
-                className="w-full mt-4"
-                disabled={success}
-              >
+              <Button type="submit" className="w-full mt-4" disabled={success}>
                 {loadingRegister ? "Creando cuenta..." : "Crear cuenta"}
               </Button>
             </form>
 
-            <Button variant="outline" className="w-full mt-4">
-              <Link to="/login">Regresar</Link>
-            </Button>
+            <div className="flex mt-4 items-center justify-center text-sm">
+              <span>¿Ya eres usuario?</span>
+              <Button variant="link" className="px-2">
+                <Link to="/login">Inicia sesión</Link>
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>

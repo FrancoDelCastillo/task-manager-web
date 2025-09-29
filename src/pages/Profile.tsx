@@ -1,160 +1,165 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { supabase } from "../supabaseClient";
-
-import { Link } from "react-router-dom";
-
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Link } from "react-router-dom";
 
-interface SignUpError {
-  message: string;
-}
+import { uploadAvatar } from "../services/uploadApi";
+import { getProfile, updateProfile } from "../services/profileApi";
 
-export default function Profile(): React.JSX.Element {
-  const [firstName, setFirstName] = useState<string>("");
-  const [lastName, setLastName] = useState<string>("");
-  const [email, setEmail] = useState<string>("");
-  const [password, setPassword] = useState<string>("");
-  const [avatarImage, setAvatarImage] = useState<File | null>(null);
-  const [loadingRegister, setLoadingRegister] = useState<boolean>(false);
-  const [error, setError] = useState<string>("");
+export default function ProfilePage() {
+  const { id } = useParams();
+  const [profile, setProfile] = useState<any>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const navigate = useNavigate();
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
 
-  const handleSignUp = async (
-    e: React.FormEvent<HTMLFormElement>
-  ): Promise<void> => {
-    e.preventDefault();
-    setLoadingRegister(true);
-    setError("");
+  const [openDialog, setOpenDialog] = useState(false);
 
+  const handleSave = async () => {
     try {
-      const { data, error: signUpError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: "http://localhost:5173/dashboard",
-        },
-      });
+      let avatarUrl = profile.avatar_url;
 
-      if (signUpError) {
-        setError(signUpError.message);
+      if (avatarFile) {
+        avatarUrl = await uploadAvatar(profile.id, avatarFile);
       }
 
-      const user = data.user;
-
-      const {error: profileError} = await supabase.from("profiles").update({
-        id: user?.id,
-        first_name: firstName,
-        last_name: lastName,
-        avatar_url: avatarImage
-      })
-
-      if(profileError){
-        setError(profileError.message)
-        setLoadingRegister(false)
-        return
-      }
-
-      setLoadingRegister(false)
-      alert("Registro exitoso ✅, revisa el correo de confirmación");
-
+      await updateProfile(profile.id, firstName, lastName, avatarUrl);
+      alert("Perfil actualizado correctamente ✅");
     } catch (err) {
-      const signUpError = err as SignUpError;
-      setError(signUpError.message || "Error inesperado");
-    } finally {
-      setLoadingRegister(false);
+      alert("Error al actualizar perfil ❌");
     }
-
-
-
-
   };
 
+  useEffect(() => {
+    const loadProfile = async () => {
+      const {
+        data: { user }
+      } = await supabase.auth.getUser();
+
+      if (user) {
+        setUserId(user.id);
+    
+        const data = await getProfile(user.id);
+
+        if (data) {
+          setProfile(data);
+          setFirstName(data.first_name || "");
+          setLastName(data.last_name || "");
+          setAvatarFile(data.avatar_url || "");
+        }
+
+        setLoading(false);
+      }
+    };
+    loadProfile();
+  }, [id]);
+
+  if (loading) return <p className="text-center mt-10">Cargando...</p>;
+  if (!profile)
+    return <p className="text-center mt-10">Perfil no encontrado</p>;
+
+  const isOwner = profile.id === userId;
+
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100 px-4">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle className="text-center text-2xl font-bold">
-            Mi perfil
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSignUp} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="correo@ejemplo.com"
-                value={email}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  setEmail(e.target.value)
+    <div className="max-w-md mx-auto mt-10">
+      <Card>
+        <CardContent className="flex flex-col items-center gap-4 p-6">
+          <Avatar className="w-40 h-40">
+            <AvatarImage
+              src={`${profile.avatar_url}?u=${new Date(
+                profile.updated_at
+              ).getTime()}`}
+            />
+            <AvatarFallback>
+              {profile.first_name?.[0]?.toUpperCase() || "?"}
+            </AvatarFallback>
+          </Avatar>
+
+          <h2 className="text-xl font-semibold">
+            {profile.first_name} {profile.last_name}
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Miembro desde:{" "}
+            {new Date(profile.created_at).toLocaleDateString("es-PE")}
+          </p>
+
+          {isOwner && (
+            <Dialog
+              open={openDialog}
+              onOpenChange={(open) => {
+                setOpenDialog(open);
+                if (open && profile) {
+                  setFirstName(profile.first_name || "");
+                  setLastName(profile.last_name || "");
+                  setAvatarFile(profile.avatar_url || null);
                 }
-              />
-            </div>
+              }}
+            >
+              <DialogTrigger asChild>
+                <Button variant="default" className="mt-4">
+                  Editar perfil
+                </Button>
+              </DialogTrigger>
 
-            <div className="space-y-2">
-              <Label htmlFor="firstName">Nombre</Label>
-              <Input
-                id="firstName"
-                type="text"
-                placeholder=""
-                value={firstName}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  setFirstName(e.target.value)
-                }
-              />
-            </div>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Editar perfil</DialogTitle>
+                </DialogHeader>
 
-            <div className="space-y-2">
-              <Label htmlFor="lastName">Apellido</Label>
-              <Input
-                id="lastName"
-                type="text"
-                placeholder=""
-                value={lastName}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  setLastName(e.target.value)
-                }
-              />
-            </div>
+                <div className="flex flex-col gap-4 mt-4">
+                  <div>
+                    <Label htmlFor="first_name">Nombre</Label>
+                    <Input
+                      id="first_name"
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                    />
+                  </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="avatarImage">Foto de perfil</Label>
-              <Input
-                id="avatarImage"
-                type="file"
-                accept="image/*"
-                onChange={(e) => {
-                  const file = e.target.files?.[0] || null;
-                  setAvatarImage(file);
-                }}
-              />
-            </div>
+                  <div>
+                    <Label htmlFor="last_name">Apellido</Label>
+                    <Input
+                      id="last_name"
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                    />
+                  </div>
 
-            {error && <p className="text-red-500 text-sm">{error}</p>}
-            
-              <Button
-                type="submit"
-                className="w-full mt-4"
-                disabled={loadingRegister}
-              >
-                {loadingRegister ? "Actualizando..." : "Editar perfil"}
-              </Button>
-          </form>
+                  <div>
+                    <Label htmlFor="avatar">Avatar</Label>
+                    <Input
+                      id="avatar"
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) =>
+                        setAvatarFile(e.target.files?.[0] || null)
+                      }
+                    />
+                  </div>
 
-              <Button variant="outline" className="w-full mt-4">
-                <Link to="/dashboard">Volver</Link>
-              </Button>
+                  <Button onClick={handleSave}>Guardar cambios</Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          )}
+          <Button variant="link" className="mt-4">
+            <Link to="/dashboard">Volver</Link>
+          </Button>
         </CardContent>
       </Card>
     </div>

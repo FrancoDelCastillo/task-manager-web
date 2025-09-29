@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabaseClient";
 
@@ -9,7 +9,6 @@ import {
   CardAction,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -26,8 +25,19 @@ export default function Login(): React.JSX.Element {
   const [password, setPassword] = useState<string>("");
   const [loadingLogin, setLoadingLogin] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
+  const [checkingSession, setCheckingSession] = useState<boolean>(true);
 
   const navigate = useNavigate();
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) {
+        navigate("/dashboard", { replace: true });
+      }
+      setCheckingSession(false);
+    });
+  }, [navigate]);
+
 
   const handleLogin = async (
     e: React.FormEvent<HTMLFormElement>
@@ -60,6 +70,14 @@ export default function Login(): React.JSX.Element {
       setLoadingLogin(false);
     }
   };
+
+  if (checkingSession) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p>Cargando...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100 px-4">

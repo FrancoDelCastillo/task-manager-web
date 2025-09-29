@@ -2,9 +2,11 @@ import { useEffect, useState } from "react";
 import { supabase } from "../supabaseClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Link } from "react-router-dom";
 
 export default function Dashboard(): React.JSX.Element {
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string| null>(null)
 
   useEffect(() => {
     const getUser = async (): Promise<void> => {
@@ -17,6 +19,11 @@ export default function Dashboard(): React.JSX.Element {
         }
         
         setUserEmail(data.user?.email ?? null);
+
+        if(data.user){
+          setUserId(data.user.id)
+        }
+        
       } catch (err) {
         console.error("Unexpected error getting user:", err);
       }
@@ -48,9 +55,18 @@ export default function Dashboard(): React.JSX.Element {
     <div className="min-h-screen bg-gray-100 flex flex-col">
       {/* Header */}
       <header className="bg-white shadow p-4 flex justify-between items-center">
-        <h1 className="text-xl font-bold">Task Manager Dashboard</h1>
+        <h1 className="text-xl font-bold">Task Manager</h1>
         <div className="flex items-center gap-4">
           {userEmail && <span className="text-sm text-gray-600">{userEmail}</span>}
+
+          <Button 
+            variant="link" 
+          >
+            <Link to={`/profile/${userId}`}>
+            Ver mi perfil
+            </Link>
+          </Button>
+
           <Button 
             variant="destructive" 
             onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
