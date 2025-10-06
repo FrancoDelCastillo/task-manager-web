@@ -6,46 +6,61 @@ import ForgotPassword from "./pages/ForgotPassword";
 import SignUp from "./pages/SignUp";
 import Welcome from "./pages/Welcome";
 import Profile from "./pages/Profile";
+import BoardPage from "./pages/BoardPage";
 import NotFoundPage from "./pages/NotFoundPage";
 import HomeRedirect from "./components/auth/HomeRedirect";
 
+import { Toaster } from "@/components/ui/sonner";
+
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
+
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/welcome"
-          element={
-            <ProtectedRoute>
-              <Welcome />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/profile/:id"
-          element={
-            <ProtectedRoute>
-              <Profile />
-            </ProtectedRoute>
-          }
-        />
-        <Route path="/login" element={<Login />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/sign-up" element={<SignUp />} />
-        <Route path="*" element={<NotFoundPage />} />
-        <Route path="/" element={<HomeRedirect />} />
-      </Routes>
-    </BrowserRouter>
+    <>
+      <BrowserRouter>
+        <Routes>
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/board/:id"
+            element={
+              <ProtectedRoute>
+                <BoardPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/welcome"
+            element={
+              <ProtectedRoute>
+                <Welcome />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile/:id"
+            element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/login" element={<Login />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/sign-up" element={<SignUp />} />
+          <Route path="*" element={<NotFoundPage />} />
+          <Route path="/" element={<HomeRedirect />} />
+        </Routes>
+      </BrowserRouter>
+      <Toaster richColors position="top-right" />
+    </>
   );
 }

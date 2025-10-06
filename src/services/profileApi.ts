@@ -36,25 +36,25 @@ export async function updateProfile(
 }
 
 export async function getProfile(profileId: string) {
-    const { data, error } = await supabase.auth.getSession();
+  const { data, error } = await supabase.auth.getSession();
 
-    if (error) throw new Error("No se pudo obtener la sesión");
-    const accessToken = data.session?.access_token;
-    if (!accessToken) throw new Error("Usuario no autenticado");
+  if (error) throw new Error("No se pudo obtener la sesión");
+  const accessToken = data.session?.access_token;
+  if (!accessToken) throw new Error("Usuario no autenticado");
 
-    const response = await fetch(`${API_URL}/profiles/${profileId}`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${accessToken}`
-      },
-    });
-  
-    if (!response.ok) {
-      throw new Error(`Error ${response.status}: ${response.statusText}`);
-    }
-  
-    let resJson = await response.json() 
-    console.log("response: ",resJson)
-    return resJson;
+  const response = await fetch(`${API_URL}/profiles/${profileId}`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${accessToken}`
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Error ${response.status}: ${response.statusText}`);
   }
+
+  let resJson = await response.json()
+  console.log("response: ", resJson)
+  return resJson;
+}
